@@ -5,33 +5,41 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 
 contract Dex {
+    
+    constructor() {
+        admin = msg.sender;
+    }
 
-    mapping(string => address) public tokens;
+    struct Token {
+        string ticker; //ticker: DAI, ETH...
+        address tokenAddress;
+    }
+
+    mapping(string => Token) public tokens;
 
     address public admin;
 
     mapping(address => mapping(string => uint)) public balances;
 
-    constructor() {
-        admin = msg.sender;
-    }
+    
 
+    
 
     // Vamos a crear las funciones de agregado de tokens dentro del dex
 
     function addToken(string memory ticker, address tokenAddress) external onlyAdmin() { 
-        tokens[ticker] = tokenAddress;
+        tokens[ticker] = Token(ticker, tokenAddress);
     }
 
     function removeToken(string memory ticker) external onlyAdmin() { 
-        tokens[ticker] = address(0);
+        tokens[ticker] = Token('', address(0));
     }
 
 
     // Creamos las funciones para agregar y quitar liquidez.
 
     function deposit(uint _amount, string memory ticker) external tokenExist(ticker) {
-        IERC20(tokens[ticker]).transferFrom(msg.sender, address(this), _amount);
+        IERC20(tokens[ticker].tokenAddress).transferFrom(msg.sender, address(this), _amount);
         balances[msg.sender][ticker] += _amount;
     }
 
@@ -39,11 +47,11 @@ contract Dex {
     function withdraw(uint _amount, string memory ticker) external tokenExist(ticker) {
         require(balances[msg.sender][ticker] >= _amount, 'Not enough tokens');
         balances[msg.sender][ticker] -= _amount;
-        IERC20(tokens[ticker]).transfer(msg.sender, _amount);
+        IERC20(tokens[ticker].tokenAddress).transfer(msg.sender, _amount);
     }
 
     modifier tokenExist(string memory ticker) {
-        require(tokens[ticker] != address(0), 'Token not approved.');
+        require(tokens[ticker].tokenAddress != address(0), 'token not approved');
         _;
     }
 
